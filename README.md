@@ -1,77 +1,119 @@
-# Markets Backtesting — 50 Alternative-Data Signals from the Literature
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/banner-light.svg">
+  <img alt="Markets Backtesting status readout: 50 signals, two evaluation windows, 11 positive in both" src="assets/banner-dark.svg">
+</picture>
 
-A self-contained research harness that implements **50 trading signals**, each traced to a
-specific academic paper, and evaluates them with a single rigorous **walk-forward backtest**
-across equities, FX, commodities, crypto and volatility products.
+# Markets Backtesting
 
-Built for **QuantiHack 2026** (theme: *data manipulation*) — the goal was to turn
-unconventional, "alternative" data sources into testable signals and rank them honestly,
-fast, under a hackathon deadline.
+A walk-forward evaluation harness that runs 50 academically sourced market signals through one
+data, execution-cost, and metrics pipeline. It downloads daily price history, replays fixed rules
+across a full-history window and a focused stress window, then ranks every completed run without
+hiding the failures.
 
----
+The hard part is comparability. Calendar effects, cross-asset regimes, price-range estimators,
+sentiment proxies, and volatility rules all produce different shapes of data. This project gives
+each one the same lagged execution model, cost accounting, evaluation windows, and result schema.
 
-## The idea
+## Evaluation status
 
-Most strategy backtests cherry-pick one signal and one period. This does the opposite:
+The committed run contains 50 completed signals and 22 fields per result. The split is useful:
+the stress window rejects far more ideas than the full-history measure does.
 
-- **50 signals, one framework.** Every strategy is a small `signal()` function plugged into
-  a shared backtest engine (position sizing, slippage, equity curve, metrics) so they're
-  compared on identical footing.
-- **Every signal is sourced.** Each one cites the paper it comes from — Tetlock (2007) on
-  media pessimism, Ariel (1990) on the holiday effect, Asness et al. (2012) on risk parity,
-  Amihud (2002) on illiquidity, and 46 more — grouped into six families:
+| Readout | Result |
+|:--|--:|
+| Registered and completed | 50 / 50 |
+| Positive full-history Sharpe | 39 |
+| Non-positive full-history Sharpe | 11 |
+| Positive stress-window return | 12 |
+| Non-positive stress-window return | 38 |
+| Positive on both measures | 11 |
 
-  | Family | Examples |
-  |--------|----------|
-  | Textual / NLP | media-pessimism reversal, Wikipedia-attention proxy |
-  | Calendar & temporal | holiday effect, Monday reversal, quarter-end window dressing |
-  | Cross-asset leakage | ETF-flow reversal, gold crisis hedge |
-  | Microstructure & order flow | odd-lot retail contrarian, Amihud illiquidity premium |
-  | Behavioural & sentiment | round-number avoidance, VIX-percentile contrarian |
-  | Volatility surface | implied–realised vol spread, kurtosis tail premium |
+These counts are calculated from the committed
+[result set](quantihack_alt_data_50_results.csv). A positive measure is strictly greater than
+zero. No non-positive row is removed from the leaderboard.
 
-- **Two-window walk-forward.** Every signal is scored on the full history
-  (**WF1: 2010 → 2026**) *and* re-run on a deliberate out-of-sample stress window
-  (**WF2: Feb–Apr 2026**, the tariff-war drawdown) to surface what survives a regime it
-  was never tuned on.
+### Leading combined ranks
 
-## Ranking
+The ranking is the mean of two ordinal ranks: full-history Sharpe and stress-window return.
 
-Signals are ranked by `combined = avg(WF1 Sharpe rank, WF2 return rank)` — rewarding
-strategies that are both strong in-sample *and* robust through the crisis window, not just
-one or the other. Full metrics per strategy (CAGR, Sharpe, Sortino, max drawdown, Calmar,
-profit factor, skew, beta, alpha) are written to `quantihack_alt_data_50_results.csv`.
+| Signal | Literature reference | Full-history Sharpe | Stress return | Combined rank |
+|:--|:--|--:|--:|--:|
+| Conditional Risk Parity | Asness et al. (2012), SSRN 2050064 | 0.758 | 1.957% | 4.0 |
+| Parkinson Regime Switch | Parkinson (1980) | 0.642 | 4.374% | 6.5 |
+| Holiday Effect | Ariel (1990); Lakonishok and Smidt (1988) | 0.595 | 4.803% | 7.0 |
+| Round Number Avoidance | Bhattacharya et al. (2012), SSRN 1364960 | 0.694 | 1.096% | 7.0 |
+| Volume-Weighted RSI(2) | Lerman et al. (2008), SSRN 1121475 | 0.605 | 2.459% | 7.5 |
 
-### Top of the leaderboard
+Displayed values are truncated from the stored precision in the
+[CSV output](quantihack_alt_data_50_results.csv). The complete chart is committed alongside it.
 
-| Signal | Source | WF1 Sharpe | WF2 return |
-|--------|--------|-----------:|-----------:|
-| Conditional Risk Parity | Asness et al. (2012) | 0.76 | +1.96% |
-| Parkinson Regime Switch | Parkinson (1980) | 0.64 | +4.37% |
-| Holiday Effect | Ariel (1990); Lakonishok & Smidt (1988) | 0.60 | +4.80% |
-| Round-Number Avoidance | Bhattacharya et al. (2012) | 0.69 | +1.10% |
-| Volume-Weighted RSI(2) | Lerman et al. (2008) | 0.61 | +2.46% |
+![Top ten equity curves across the full-history and stress windows](quantihack_alt_data_50.png)
 
-![Walk-forward results](quantihack_alt_data_50.png)
+## How the run works
+
+```mermaid
+flowchart LR
+    A["Yahoo Finance daily bars"] --> C["Normalized OHLCV frames"]
+    B["Optional local CSV bars"] --> C
+    C --> D["50-signal registry"]
+    D --> E["Lagged single and multi-asset engines"]
+    E --> F["Full history<br/>2010-01-01 to 2026-04-06"]
+    E --> G["Stress slice<br/>2026-02-01 to 2026-04-06"]
+    F --> H["Metrics and rank aggregation"]
+    G --> H
+    H --> I["CSV leaderboard"]
+    H --> J["Top-ten chart"]
+```
+
+The engines apply positions one bar after the signal. Single-asset runs charge 1 basis point when
+the position changes. Multi-asset runs charge 5 basis points on total weight turnover. The output
+includes CAGR, Sharpe, Sortino, maximum drawdown, Calmar, volatility, win rate, profit factor,
+skew, tail ratio, and beta.
+
+The stress period is a date slice from each generated equity curve. It is a consistent regime
+check, but it is not a separately trained holdout. The Sharpe calculation uses daily returns and
+does not subtract a risk-free rate.
 
 ## Run it
 
+The verified run used Python 3.11.9. The command needs network access for Yahoo Finance unless
+the optional local daily-bar CSVs are present.
+
 ```bash
-pip install -r requirements.txt
-python quantihack_alt_data_50.py     # full backtest → results CSV + chart PNG
+git clone https://github.com/LolStar123/markets-backtesting.git
+cd markets-backtesting
+python -m pip install -r requirements.txt
+python quantihack_alt_data_50.py
 ```
 
-`quantihack_algo_baseline.py` is a separate multi-asset baseline bot (16 symbols, position
-limits, stop-loss / take-profit / cooldown) used as a sanity reference.
+The command writes:
 
-## Stack
+- `quantihack_alt_data_50_results.csv`: all completed runs, metrics, and ranks.
+- `quantihack_alt_data_50.png`: full-history and stress-window curves for the top ten ranks.
 
-Python 3 · pandas / numpy / scipy · yfinance · matplotlib
+Local data can be placed under `ibkr_data/` using the filenames declared in
+[`IBKR_MAP`](quantihack_alt_data_50.py). If a local file is missing, the loader requests the same
+symbol from Yahoo Finance.
 
-## Notes
+## Repository map
 
-- Research code, not a live trading system — no broker integration, fills are modelled with
-  a flat per-side slippage.
-- Data is pulled via `yfinance` (with local CSV fallbacks for SPY/TLT/VIX/GLD/BTC/ETH).
-- The point is **breadth + honest validation**: 50 ideas, one engine, an out-of-sample
-  stress test, and a leaderboard you can argue with.
+| Path | Responsibility |
+|:--|:--|
+| [`quantihack_alt_data_50.py`](quantihack_alt_data_50.py) | Data loading, indicators, 50-signal registry, evaluation, ranking, and outputs |
+| [`quantihack_alt_data_50_results.csv`](quantihack_alt_data_50_results.csv) | Reproducible result table used for every number in this README |
+| [`quantihack_alt_data_50.png`](quantihack_alt_data_50.png) | Generated comparison chart |
+| [`quantihack_algo_baseline.py`](quantihack_algo_baseline.py) | Separate 16-symbol baseline used as a reference implementation |
+| [`requirements.txt`](requirements.txt) | Runtime dependencies |
+
+## Scope
+
+This is research and evaluation code. It has no broker integration, order routing, or live
+execution. Several literature-inspired signals use price-derived proxies because their original
+datasets are unavailable here. Read the implementation comments before interpreting a result.
+Historical output is evidence about this fixed run, not a forecast.
+
+Contributions should keep signal functions deterministic, preserve one-bar execution lag, and
+record any metric or cost-model change that would break comparability. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for the short workflow. The project is available under the
+[MIT License](LICENSE).
