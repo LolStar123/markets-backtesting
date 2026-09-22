@@ -6,3 +6,5 @@ __pycache__/
 # Local price-data caches
 *.cache
 data_cache/
+
+output/

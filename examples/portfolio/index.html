@@ -1,1 +1,157 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Market research / walk forward</title><link rel="stylesheet" href="style.css"><body><header><a href="https://github.com/LolStar123/markets-backtesting">market research / python pipeline</a><a href="https://atul-kanodia-fieldnotes.atulswaggalicious.chatgpt.site">atul's projects</a></header><main><div class="title"><h1>test the next window.</h1><span id="source">loading historical prices</span></div><nav><button data-tab="experiment" class="active">walk-forward experiment</button><button data-tab="archive">50-strategy research archive</button></nav><section id="experiment"><div class="workspace"><aside><p class="eyebrow">SPY / daily closes</p><h2>a rule has to survive unseen data.</h2><label>training window<select id="training"><option value="252">1 year / 252 sessions</option><option value="504" selected>2 years / 504 sessions</option><option value="756">3 years / 756 sessions</option></select></label><label>test window<select id="testing"><option value="21">1 month / 21 sessions</option><option value="63" selected>3 months / 63 sessions</option><option value="126">6 months / 126 sessions</option></select></label><label>cost per side <span><input id="cost" type="number" value="5" min="0" max="100" step="1"> basis points</span></label><button id="run">run the walk-forward test</button><p class="note">Each training window chooses from 20, 60, 120 and 200-day moving-average rules. The winning rule is frozen for the next test window. Signals use the previous close. Costs apply when exposure changes.</p><button id="download">export out-of-sample returns</button></aside><article><div id="stats"></div><div class="plot-label"><span>equity / compounded from 1.00</span><span><i></i> walk-forward <i class="bench"></i> buy &amp; hold</span></div><div id="chart"></div><p id="cursor">Move over the chart to inspect a trading day.</p><h3>the decisions, before the test begins</h3><div class="table-wrap"><table><thead><tr><th>trained through</th><th>next test</th><th>chosen rule</th><th>training Sharpe</th></tr></thead><tbody id="windows"></tbody></table></div></article></div></section><section id="archive" hidden><div class="archive-intro"><h2>50 signals. two recorded windows.</h2><p>Original Python research outputs. Full period: 2010-01-01 to 2026-04-06. Stress window: 2026-02-01 to 2026-04-06. Selecting on these results introduces selection bias; the archive is research evidence, not a recommendation.</p></div><label>find a strategy or paper <input id="search" type="search" placeholder="calendar, volatility, risk parity..."></label><label>sort <select id="sort"><option value="combined_rank">combined rank</option><option value="wf1_sharpe">full-period Sharpe</option><option value="wf2_ret">stress-window return</option></select></label><p id="archive-count"></p><div class="table-wrap"><table><thead><tr><th>strategy / source paper</th><th>full CAGR</th><th>full Sharpe</th><th>max drawdown</th><th>stress return</th></tr></thead><tbody id="strategies"></tbody></table></div></section><footer id="provenance"></footer></main><script type="module" src="app.mjs"></script></body></html>
+<!doctype html>
+<html lang="en">
+    <meta charset="utf-8" /><meta
+        name="viewport"
+        content="width=device-width,initial-scale=1"
+    /><title>Market research / walk forward</title
+    ><link rel="stylesheet" href="style.css" />
+    <body>
+        <header>
+            <a href="https://github.com/LolStar123/markets-backtesting"
+                >market research / python pipeline</a
+            ><a
+                href="https://atul-kanodia-fieldnotes.atulswaggalicious.chatgpt.site"
+                >atul's projects</a
+            >
+        </header>
+        <main>
+            <div class="title">
+                <h1>test the next window.</h1>
+                <span id="source">loading historical prices</span>
+            </div>
+            <nav>
+                <button data-tab="experiment" class="active">
+                    walk-forward experiment</button
+                ><button data-tab="archive">
+                    50-strategy research archive
+                </button>
+            </nav>
+            <section id="experiment">
+                <div class="workspace">
+                    <aside>
+                        <p class="eyebrow">SPY / daily closes</p>
+                        <h2>a rule has to survive unseen data.</h2>
+                        <label
+                            >training window<select id="training">
+                                <option value="252">
+                                    1 year / 252 sessions
+                                </option>
+                                <option value="504" selected>
+                                    2 years / 504 sessions
+                                </option>
+                                <option value="756">
+                                    3 years / 756 sessions
+                                </option>
+                            </select></label
+                        ><label
+                            >test window<select id="testing">
+                                <option value="21">
+                                    1 month / 21 sessions
+                                </option>
+                                <option value="63" selected>
+                                    3 months / 63 sessions
+                                </option>
+                                <option value="126">
+                                    6 months / 126 sessions
+                                </option>
+                            </select></label
+                        ><label
+                            >cost per side
+                            <span
+                                ><input
+                                    id="cost"
+                                    type="number"
+                                    value="5"
+                                    min="0"
+                                    max="100"
+                                    step="1"
+                                />
+                                basis points</span
+                            ></label
+                        ><button id="run">run the walk-forward test</button>
+                        <p class="note">
+                            Each training window chooses from 20, 60, 120 and
+                            200-day moving-average rules. The winning rule is
+                            frozen for the next test window. Signals use the
+                            previous close. Costs apply when exposure changes.
+                        </p>
+                        <button id="download">
+                            export out-of-sample returns
+                        </button>
+                    </aside>
+                    <article>
+                        <div id="stats"></div>
+                        <div class="plot-label">
+                            <span>equity / compounded from 1.00</span
+                            ><span
+                                ><i></i> walk-forward <i class="bench"></i> buy
+                                &amp; hold</span
+                            >
+                        </div>
+                        <div id="chart"></div>
+                        <p id="cursor">
+                            Move over the chart to inspect a trading day.
+                        </p>
+                        <h3>the decisions, before the test begins</h3>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>trained through</th>
+                                        <th>next test</th>
+                                        <th>chosen rule</th>
+                                        <th>training Sharpe</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="windows"></tbody>
+                            </table>
+                        </div>
+                    </article>
+                </div>
+            </section>
+            <section id="archive" hidden>
+                <div class="archive-intro">
+                    <h2>50 signals. two recorded windows.</h2>
+                    <p>
+                        Original Python research outputs. Full period:
+                        2010-01-01 to 2026-04-06. Stress window: 2026-02-01 to
+                        2026-04-06. Selecting on these results introduces
+                        selection bias; the archive is research evidence, not a
+                        recommendation.
+                    </p>
+                </div>
+                <label
+                    >find a strategy or paper
+                    <input
+                        id="search"
+                        type="search"
+                        placeholder="calendar, volatility, risk parity..." /></label
+                ><label
+                    >sort
+                    <select id="sort">
+                        <option value="combined_rank">combined rank</option>
+                        <option value="wf1_sharpe">full-period Sharpe</option>
+                        <option value="wf2_ret">stress-window return</option>
+                    </select></label
+                >
+                <p id="archive-count"></p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>strategy / source paper</th>
+                                <th>full CAGR</th>
+                                <th>full Sharpe</th>
+                                <th>max drawdown</th>
+                                <th>stress return</th>
+                            </tr>
+                        </thead>
+                        <tbody id="strategies"></tbody>
+                    </table>
+                </div>
+            </section>
+            <footer id="provenance"></footer>
+        </main>
+        <script type="module" src="app.mjs"></script>
+    </body>
+</html>

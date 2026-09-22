@@ -1,5 +1,141 @@
-import {backtest} from './model.mjs';const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),pct=x=>(x*100).toFixed(1)+'%';let data,research,result;
-function run(){try{result=backtest(data.prices,{training:+$('#training').value,testing:+$('#testing').value,costBps:+$('#cost').value});const s=result.stats;$('#stats').innerHTML=[[pct(s.cagr),'out-of-sample CAGR'],[s.sharpe.toFixed(2),'daily-return Sharpe'],[pct(s.drawdown),'maximum drawdown'],[result.trades,'exposure changes']].map(([v,k])=>`<span><strong>${v}</strong><small>${k}</small></span>`).join('');const values=result.curve.flatMap(p=>[p.equity,p.benchmark]),max=Math.max(...values)*1.05,min=0,w=1000,h=320,x=i=>50+i/(result.curve.length-1)*930,y=v=>280-v/max*250;$('#chart').innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Out-of-sample equity against buy and hold">${[0,.25,.5,.75,1].map(p=>`<line x1="50" x2="980" y1="${y(max*p)}" y2="${y(max*p)}" stroke="#2c4149"/><text x="8" y="${y(max*p)+4}" fill="#839fa7" font-size="11">${(max*p).toFixed(1)}</text>`).join('')}${['benchmark','equity'].map(k=>`<polyline points="${result.curve.map((p,i)=>`${x(i).toFixed(1)},${y(p[k]).toFixed(1)}`).join(' ')}" stroke="${k==='equity'?'#d4b877':'#5a7c88'}" stroke-width="2" fill="none"/>`).join('')}<text x="50" y="309" fill="#839fa7" font-size="12">${result.curve[0].date}</text><text x="980" y="309" text-anchor="end" fill="#839fa7" font-size="12">${result.curve.at(-1).date}</text></svg>`;$('#chart').onpointermove=e=>{const rect=$('#chart').getBoundingClientRect(),i=Math.max(0,Math.min(result.curve.length-1,Math.round(((e.clientX-rect.left)/rect.width*1000-50)/930*(result.curve.length-1)))),p=result.curve[i];$('#cursor').textContent=`${p.date} / strategy ${p.equity.toFixed(3)} / benchmark ${p.benchmark.toFixed(3)} / ${p.position?'invested':'cash'} / SMA ${p.period}`};$('#windows').innerHTML=result.windows.slice().reverse().map(r=>`<tr><td>${r.trainTo}</td><td>${r.testFrom} to ${r.testTo}</td><td>SMA ${r.period}</td><td>${r.trainingSharpe.toFixed(2)}</td></tr>`).join('');window.__backtest={ready:true,result,prices:data.prices.length};}catch(e){$('#cursor').textContent=e.message}}
-function archive(){const q=$('#search').value.toLowerCase(),key=$('#sort').value,rows=research.filter(r=>(r.name+' '+r.paper).toLowerCase().includes(q)).sort((a,b)=>key==='combined_rank'?+a[key]-b[key]:+b[key]-a[key]);$('#archive-count').textContent=rows.length+' of 50 original research runs';$('#strategies').innerHTML=rows.map(r=>`<tr><td>${esc(r.name)}<small>${esc(r.paper)}</small></td><td>${pct(+r.wf1_cagr)}</td><td>${(+r.wf1_sharpe).toFixed(2)}</td><td>${pct(+r.wf1_mdd)}</td><td>${pct(+r.wf2_ret)}</td></tr>`).join('')}
-for(const b of document.querySelectorAll('nav button'))b.onclick=()=>{for(const s of ['experiment','archive'])$('#'+s).hidden=s!==b.dataset.tab;for(const n of document.querySelectorAll('nav button'))n.classList.toggle('active',n===b)};$('#run').onclick=run;$('#search').oninput=archive;$('#sort').onchange=archive;$('#download').onclick=()=>{const keys=['date','equity','benchmark','position','period','return'],text=[keys.join(','),...result.curve.map(p=>keys.map(k=>p[k]).join(','))].join('\n'),url=URL.createObjectURL(new Blob([text],{type:'text/csv'})),a=document.createElement('a');a.href=url;a.download='walk-forward-returns.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
-try{[data,research]=await Promise.all(['data/spy.json','data/research.json'].map(async u=>{const r=await fetch(u);if(!r.ok)throw Error('Historical data could not load');return r.json()}));$('#source').textContent=`SPY / ${data.prices.length.toLocaleString()} daily closes / ${data.prices[0].date} to ${data.prices.at(-1).date}`;$('#provenance').textContent=data.note+' The browser experiment is a separate transparent moving-average walk-forward test; it does not reproduce all fifty Python strategies. Positions are marked to close, with no leverage, interest on cash or taxes.';run();archive()}catch(e){$('#source').textContent=e.message;throw e}
+import { backtest } from "./model.mjs";
+const $ = (s) => document.querySelector(s),
+    esc = (s) =>
+        String(s).replace(
+            /[&<>"']/g,
+            (c) =>
+                ({
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;",
+                    '"': "&quot;",
+                    "'": "&#39;",
+                })[c],
+        ),
+    pct = (x) => (x * 100).toFixed(1) + "%";
+let data, research, result;
+function run() {
+    try {
+        result = backtest(data.prices, {
+            training: +$("#training").value,
+            testing: +$("#testing").value,
+            costBps: +$("#cost").value,
+        });
+        const s = result.stats;
+        $("#stats").innerHTML = [
+            [pct(s.cagr), "out-of-sample CAGR"],
+            [s.sharpe.toFixed(2), "daily-return Sharpe"],
+            [pct(s.drawdown), "maximum drawdown"],
+            [result.trades, "exposure changes"],
+        ]
+            .map(
+                ([v, k]) =>
+                    `<span><strong>${v}</strong><small>${k}</small></span>`,
+            )
+            .join("");
+        const values = result.curve.flatMap((p) => [p.equity, p.benchmark]),
+            max = Math.max(...values) * 1.05,
+            min = 0,
+            w = 1000,
+            h = 320,
+            x = (i) => 50 + (i / (result.curve.length - 1)) * 930,
+            y = (v) => 280 - (v / max) * 250;
+        $("#chart").innerHTML =
+            `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Out-of-sample equity against buy and hold">${[0, 0.25, 0.5, 0.75, 1].map((p) => `<line x1="50" x2="980" y1="${y(max * p)}" y2="${y(max * p)}" stroke="#2c4149"/><text x="8" y="${y(max * p) + 4}" fill="#839fa7" font-size="11">${(max * p).toFixed(1)}</text>`).join("")}${["benchmark", "equity"].map((k) => `<polyline points="${result.curve.map((p, i) => `${x(i).toFixed(1)},${y(p[k]).toFixed(1)}`).join(" ")}" stroke="${k === "equity" ? "#d4b877" : "#5a7c88"}" stroke-width="2" fill="none"/>`).join("")}<text x="50" y="309" fill="#839fa7" font-size="12">${result.curve[0].date}</text><text x="980" y="309" text-anchor="end" fill="#839fa7" font-size="12">${result.curve.at(-1).date}</text></svg>`;
+        $("#chart").onpointermove = (e) => {
+            const rect = $("#chart").getBoundingClientRect(),
+                i = Math.max(
+                    0,
+                    Math.min(
+                        result.curve.length - 1,
+                        Math.round(
+                            ((((e.clientX - rect.left) / rect.width) * 1000 -
+                                50) /
+                                930) *
+                                (result.curve.length - 1),
+                        ),
+                    ),
+                ),
+                p = result.curve[i];
+            $("#cursor").textContent =
+                `${p.date} / strategy ${p.equity.toFixed(3)} / benchmark ${p.benchmark.toFixed(3)} / ${p.position ? "invested" : "cash"} / SMA ${p.period}`;
+        };
+        $("#windows").innerHTML = result.windows
+            .slice()
+            .reverse()
+            .map(
+                (r) =>
+                    `<tr><td>${r.trainTo}</td><td>${r.testFrom} to ${r.testTo}</td><td>SMA ${r.period}</td><td>${r.trainingSharpe.toFixed(2)}</td></tr>`,
+            )
+            .join("");
+        window.__backtest = { ready: true, result, prices: data.prices.length };
+    } catch (e) {
+        $("#cursor").textContent = e.message;
+    }
+}
+function archive() {
+    const q = $("#search").value.toLowerCase(),
+        key = $("#sort").value,
+        rows = research
+            .filter((r) => (r.name + " " + r.paper).toLowerCase().includes(q))
+            .sort((a, b) =>
+                key === "combined_rank" ? +a[key] - b[key] : +b[key] - a[key],
+            );
+    $("#archive-count").textContent =
+        rows.length + " of 50 original research runs";
+    $("#strategies").innerHTML = rows
+        .map(
+            (r) =>
+                `<tr><td>${esc(r.name)}<small>${esc(r.paper)}</small></td><td>${pct(+r.wf1_cagr)}</td><td>${(+r.wf1_sharpe).toFixed(2)}</td><td>${pct(+r.wf1_mdd)}</td><td>${pct(+r.wf2_ret)}</td></tr>`,
+        )
+        .join("");
+}
+for (const b of document.querySelectorAll("nav button"))
+    b.onclick = () => {
+        for (const s of ["experiment", "archive"])
+            $("#" + s).hidden = s !== b.dataset.tab;
+        for (const n of document.querySelectorAll("nav button"))
+            n.classList.toggle("active", n === b);
+    };
+$("#run").onclick = run;
+$("#search").oninput = archive;
+$("#sort").onchange = archive;
+$("#download").onclick = () => {
+    const keys = [
+            "date",
+            "equity",
+            "benchmark",
+            "position",
+            "period",
+            "return",
+        ],
+        text = [
+            keys.join(","),
+            ...result.curve.map((p) => keys.map((k) => p[k]).join(",")),
+        ].join("\n"),
+        url = URL.createObjectURL(new Blob([text], { type: "text/csv" })),
+        a = document.createElement("a");
+    a.href = url;
+    a.download = "walk-forward-returns.csv";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+try {
+    [data, research] = await Promise.all(
+        ["data/spy.json", "data/research.json"].map(async (u) => {
+            const r = await fetch(u);
+            if (!r.ok) throw Error("Historical data could not load");
+            return r.json();
+        }),
+    );
+    $("#source").textContent =
+        `SPY / ${data.prices.length.toLocaleString()} daily closes / ${data.prices[0].date} to ${data.prices.at(-1).date}`;
+    $("#provenance").textContent =
+        data.note +
+        " The browser experiment is a separate transparent moving-average walk-forward test; it does not reproduce all fifty Python strategies. Positions are marked to close, with no leverage, interest on cash or taxes.";
+    run();
+    archive();
+} catch (e) {
+    $("#source").textContent = e.message;
+    throw e;
+}
