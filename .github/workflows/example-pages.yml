@@ -2,7 +2,9 @@ name: working example
 on:
   push:
     branches: [main]
-    paths: ['examples/portfolio/**', '.github/workflows/example-pages.yml']
+    paths: ['examples/portfolio/**', 'tools/**', '.github/workflows/**']
+  schedule:
+    - cron: "49 */4 * * *"
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,9 +25,19 @@ jobs:
         with:
           node-version: '22'
       - run: node --test examples/portfolio/model.test.mjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install playwright
+      - run: python -m playwright install --with-deps chromium
+      - run: python tools/browser_audit.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: examples/portfolio
       - uses: actions/deploy-pages@v4
         id: deployment
+      - name: Audit the public research workbench
+        env:
+          AUDIT_URL: https://lolstar123.github.io/markets-backtesting/
+        run: python tools/browser_audit.py

@@ -1,12 +1,28 @@
 <!-- working-example:start -->
-## Try it in a minute
+## Run a real historical experiment
 
-**[Live example](https://lolstar123.github.io/markets-backtesting/)** · [Example code](examples/portfolio/model.mjs) · [Run locally](examples/portfolio/README.md) · [Atul's website](https://atul-kanodia-fieldnotes.atulswaggalicious.chatgpt.site)
+**[Open the research workbench](https://lolstar123.github.io/markets-backtesting/)**
 
-Change trading costs and training length; rerun a walk-forward moving-average experiment.
+The browser loads 5,351 historical SPY closes from the existing research cache. It selects a
+moving-average rule within each training window, freezes that choice for the next test window,
+lags positions and subtracts trading costs. Change the windows and fees, rerun, inspect each
+choice and export the out-of-sample returns.
 
-<img src="examples/portfolio/preview.png" alt="market backtesting pipeline example inputs and calculated output" width="760">
+A separate archive presents all 50 original strategy results from
+`quantihack_alt_data_50_results.csv`, including full-period and stress-window statistics and
+paper references. These recorded research runs are not silently relabelled as the browser experiment.
 
+![Historical walk-forward research workbench](examples/portfolio/preview.png)
+
+```sh
+python -m http.server 8000 --directory examples/portfolio
+node --test examples/portfolio/model.test.mjs
+```
+
+The price cache's corporate-action adjustment provenance has not been independently
+reverified. Treat the browser results as a reproducible research exercise, not audited investment
+performance. Recurring public browser checks run every four hours. Model checks explicitly
+perturb future data and verify that earlier choices and returns do not change.
 <!-- working-example:end -->
 
 <picture>

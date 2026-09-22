@@ -1,16 +1,14 @@
-# Public example provenance
+# Research data provenance
 
-Prepared 22 September 2026 for Atul Kanodia's project portfolio.
+`examples/portfolio/data/spy.json`: date and close columns from the existing
+`quant/ibkr_data/SPY_1day.csv` research cache. 5,351 rows, 2005-01-03 to 2026-04-10.
+The file location is known; upstream adjustment provenance has not been independently verified.
+No generated prices are used.
 
-## Original work
+`research.json`: exact rows from the public `quantihack_alt_data_50_results.csv`.
+The original Python implementation and cited papers remain in the repository.
 
-Public quantihack_alt_data_50.py signal registry and lagged execution/cost pipeline; local quant validation harnesses.
-
-## This repository's example
-
-The mini experiment uses generated prices and a small moving-average search. Its returns are fixture results, not strategy performance claims.
-
-The example was built for public inspection of the documented workflow. It is not a claim
-that the complete production application fits into this one module. Existing repository
-source retains its original history. Generated records have no customer, player, account,
-or private-message identifiers. Inputs and outputs can be exported and inspected.
+The browser walk-forward moving-average test is a separate executable example, not a port
+of all 50 strategies. Selection uses only the preceding training period; exposure uses the
+previous close. One-sided turnover incurs the selected fee. Open final positions are marked
+to market without a forced liquidation fee. Taxes and cash interest are excluded.

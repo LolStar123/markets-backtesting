@@ -1,143 +1,15 @@
-const prices = Array.from({ length: 260 }, (_, i) =>
-  Number(
-    (100 + Math.sin(i * 0.17) * 7 + Math.sin(i * 0.71) * 2 + i * 0.035).toFixed(
-      3,
-    ),
-  ),
-);
-export const defaults = { train: 80, test: 30, costBps: 8, prices };
-export const controls = [
-  {
-    key: "train",
-    label: "Training observations",
-    type: "number",
-    min: 40,
-    max: 180,
-    step: 10,
-  },
-  {
-    key: "test",
-    label: "Test observations",
-    type: "number",
-    min: 10,
-    max: 60,
-    step: 5,
-  },
-  {
-    key: "costBps",
-    label: "Cost per side (basis points)",
-    type: "number",
-    min: 0,
-    max: 100,
-    step: 1,
-  },
-];
-function simulate(p, start, end, lookback, cost) {
-  let equity = 1,
-    position = 0,
-    peak = 1,
-    drawdown = 0,
-    trades = 0;
-  const path = [];
-  for (let t = start; t < end; t++) {
-    // Position for return t uses only prices through t-1.
-    const history = p.slice(t - lookback, t),
-      ma = history.reduce((a, b) => a + b, 0) / lookback;
-    const next = p[t - 1] > ma ? 1 : 0,
-      turnover = Math.abs(next - position);
-    trades += turnover;
-    equity *= 1 + next * (p[t] / p[t - 1] - 1) - (turnover * cost) / 10000;
-    position = next;
-    peak = Math.max(peak, equity);
-    drawdown = Math.min(drawdown, equity / peak - 1);
-    path.push(equity);
-  }
-  if (position && path.length) {
-    equity *= 1 - cost / 10000;
-    trades++;
-    path[path.length - 1] = equity;
-    drawdown = Math.min(drawdown, equity / peak - 1);
-  }
-  return { equity, drawdown, trades, path };
-}
-export function backtest({ prices: p, train, test, costBps }) {
-  if (
-    !Number.isInteger(train) ||
-    train < 30 ||
-    !Number.isInteger(test) ||
-    test < 1 ||
-    costBps < 0 ||
-    costBps > 1000 ||
-    p.length <= train ||
-    p.some((v) => !Number.isFinite(v) || v <= 0)
-  )
-    throw Error(
-      "Use positive prices, train >= 30, test >= 1 and costs from 0 to 1000 bps.",
-    );
-  const folds = [];
-  let equity = 1;
-  const series = [1];
-  for (let start = train; start < p.length; start += test) {
-    const candidates = [5, 10, 20]
-      .map((period) => ({
-        period,
-        ...simulate(p, start - train + 20, start, period, costBps),
-      }))
-      .sort((a, b) => b.equity - a.equity || a.period - b.period);
-    const chosen = candidates[0],
-      end = Math.min(p.length, start + test),
-      result = simulate(p, start, end, chosen.period, costBps);
-    series.push(...result.path.map((v) => v * equity));
-    equity *= result.equity;
-    folds.push({
-      trainStart: start - train,
-      trainEnd: start - 1,
-      testStart: start,
-      testEnd: end - 1,
-      period: chosen.period,
-      return: result.equity - 1,
-      trades: result.trades,
-    });
-  }
-  let peak = 1,
-    dd = 0;
-  for (const e of series) {
-    peak = Math.max(peak, e);
-    dd = Math.min(dd, e / peak - 1);
-  }
-  return { folds, series, equity, drawdown: dd };
-}
-export function run(i) {
-  const r = backtest(i);
-  return {
-    summary: "Walk-forward results after trading costs",
-    metrics: {
-      "test return": (100 * (r.equity - 1)).toFixed(2) + "%",
-      "max drawdown": (r.drawdown * 100).toFixed(2) + "%",
-      "test windows": r.folds.length,
-    },
-    columns: [
-      "train range",
-      "unseen test range",
-      "chosen lookback",
-      "net return",
-      "charged sides",
-    ],
-    rows: r.folds.map((f) => [
-      `${f.trainStart}-${f.trainEnd}`,
-      `${f.testStart}-${f.testEnd}`,
-      f.period,
-      (f.return * 100).toFixed(2) + "%",
-      f.trades,
-    ]),
-    series: r.series,
-    seriesLabel: "Out-of-sample equity, starting at 1",
-    steps: [
-      "Evaluate three lookbacks on the training window",
-      "Freeze the chosen rule before the next test window",
-      "Trade with lagged signals and cost on both sides",
-      "Repeat; join only the unseen test returns",
-    ],
-    artifact: r,
-  };
+export function metrics(returns){let equity=1,peak=1,dd=0;for(const r of returns){equity*=1+r;peak=Math.max(peak,equity);dd=Math.min(dd,equity/peak-1)}const n=returns.length,mean=n?returns.reduce((a,b)=>a+b,0)/n:0,sd=n>1?Math.sqrt(returns.reduce((s,r)=>s+(r-mean)**2,0)/(n-1)):0;return{total:equity-1,cagr:n?equity**(252/n)-1:0,sharpe:sd?mean/sd*Math.sqrt(252):0,drawdown:dd};}
+export function backtest(prices,{training=504,testing=63,costBps=5,periods=[20,60,120,200]}={}){
+ if(!Number.isInteger(training)||training<Math.max(...periods)+2||!Number.isInteger(testing)||testing<1||!Number.isFinite(costBps)||costBps<0||costBps>1000)throw Error('Invalid window or cost');
+ if(prices.length<training+testing)throw Error('Not enough historical prices for these windows');
+ if(prices.some(p=>!Number.isFinite(p.close)||p.close<=0))throw Error('Prices must be positive finite values');
+ const closes=prices.map(p=>p.close),prefix=[0];for(const c of closes)prefix.push(prefix.at(-1)+c);
+ const positions=Object.fromEntries(periods.map(n=>[n,closes.map((c,i)=>i>=n?+(closes[i-1]>(prefix[i]-prefix[i-n])/n):0)]));
+ const windows=[],curve=[],ret=[],bench=[];let eq=1,buy=1,lastPos=0,trades=0,fees=0;
+ for(let start=training;start<prices.length;start+=testing){
+  const candidates=periods.map(period=>{const returns=[];let old=0;for(let i=start-training+1;i<start;i++){const pos=positions[period][i],fee=Math.abs(pos-old)*costBps/10000;returns.push(pos*(closes[i]/closes[i-1]-1)-fee);old=pos}return{period,score:metrics(returns).sharpe}}).sort((a,b)=>b.score-a.score||a.period-b.period);
+  const period=candidates[0].period,end=Math.min(prices.length,start+testing);windows.push({trainFrom:prices[start-training].date,trainTo:prices[start-1].date,testFrom:prices[start].date,testTo:prices[end-1].date,period,trainingSharpe:candidates[0].score});
+  for(let i=start;i<end;i++){const pos=positions[period][i],change=Math.abs(pos-lastPos),fee=change*costBps/10000,daily=closes[i]/closes[i-1]-1,r=pos*daily-fee;eq*=1+r;buy*=1+daily;ret.push(r);bench.push(daily);fees+=fee;trades+=change;lastPos=pos;curve.push({date:prices[i].date,equity:eq,benchmark:buy,position:pos,period,return:r})}
+ }
+ return{curve,windows,trades,costBps,fees,stats:metrics(ret),benchmark:metrics(bench)};
 }
