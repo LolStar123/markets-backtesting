@@ -1,0 +1,11 @@
+{
+  "id": "pipeline",
+  "repo": "markets-backtesting",
+  "title": "market backtesting pipeline",
+  "caption": "Tests trading ideas on unseen periods, after costs, to separate signal from noise.",
+  "workflow": "Clean the price history, lag the trading signal, deduct execution costs and test on later periods. Walk-forward checks show whether a rule survives beyond the data used to choose it.",
+  "benefit": "An attractive backtest has to survive the next window.",
+  "demo": "Change trading costs and training length; rerun a walk-forward moving-average experiment.",
+  "source": "Public quantihack_alt_data_50.py signal registry and lagged execution/cost pipeline; local quant validation harnesses.",
+  "boundary": "The mini experiment uses generated prices and a small moving-average search. Its returns are fixture results, not strategy performance claims."
+}
