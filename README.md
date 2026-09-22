@@ -1,3 +1,14 @@
+<!-- working-example:start -->
+## Try it in a minute
+
+**[Live example](https://lolstar123.github.io/markets-backtesting/)** · [Example code](examples/portfolio/model.mjs) · [Run locally](examples/portfolio/README.md) · [Atul's website](https://atul-kanodia-fieldnotes.atulswaggalicious.chatgpt.site)
+
+Change trading costs and training length; rerun a walk-forward moving-average experiment.
+
+<img src="examples/portfolio/preview.png" alt="market backtesting pipeline example inputs and calculated output" width="760">
+
+<!-- working-example:end -->
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="assets/banner-light.svg">
