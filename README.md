@@ -1,3 +1,5 @@
+> This project is now part of [quant research & backtesting](https://github.com/LolStar123/quant-research-scraper). Use the [combined workbench](https://lolstar123.github.io/quant-research-scraper/backtesting/). This repository preserves the earlier standalone source.
+
 <!-- working-example:start -->
 ## Run a real historical experiment
 
