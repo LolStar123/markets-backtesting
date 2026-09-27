@@ -1,10 +1,8 @@
-name: working example
+name: compatibility redirect
 on:
   push:
     branches: [main]
     paths: ['examples/portfolio/**', 'tools/**', '.github/workflows/**']
-  schedule:
-    - cron: "49 */4 * * *"
   workflow_dispatch:
 permissions:
   contents: read
@@ -37,7 +35,7 @@ jobs:
           path: examples/portfolio
       - uses: actions/deploy-pages@v4
         id: deployment
-      - name: Audit the public research workbench
+      - name: Audit the public redirect
         env:
           AUDIT_URL: https://lolstar123.github.io/markets-backtesting/
         run: python tools/browser_audit.py

@@ -3,7 +3,7 @@
 <!-- working-example:start -->
 ## Run a real historical experiment
 
-**[Open the research workbench](https://lolstar123.github.io/markets-backtesting/)**
+**[Open the combined research workbench](https://lolstar123.github.io/quant-research-scraper/backtesting/)**
 
 The browser loads 5,351 historical SPY closes from the existing research cache. It selects a
 moving-average rule within each training window, freezes that choice for the next test window,
@@ -23,7 +23,7 @@ node --test examples/portfolio/model.test.mjs
 
 The price cache's corporate-action adjustment provenance has not been independently
 reverified. Treat the browser results as a reproducible research exercise, not audited investment
-performance. Recurring public browser checks run every four hours. Model checks explicitly
+performance. The old Pages URL redirects to the combined workbench. Model checks explicitly
 perturb future data and verify that earlier choices and returns do not change.
 <!-- working-example:end -->
 
