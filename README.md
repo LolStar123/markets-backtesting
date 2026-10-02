@@ -17,9 +17,11 @@ paper references. These recorded research runs are not silently relabelled as th
 ![Historical walk-forward research workbench](examples/portfolio/preview.png)
 
 ```sh
-python -m http.server 8000 --directory examples/portfolio
+python -m http.server 8000 --bind 127.0.0.1 --directory examples/portfolio
 node --test examples/portfolio/model.test.mjs
 ```
+
+Open **http://127.0.0.1:8000/legacy.html** for the preserved standalone workbench. The local root redirects to the current combined app. The standalone HTML and its original stylesheet live in `legacy.html` and `legacy.css`; they share the retained model and datasets.
 
 The price cache's corporate-action adjustment provenance has not been independently
 reverified. Treat the browser results as a reproducible research exercise, not audited investment
@@ -35,7 +37,7 @@ perturb future data and verify that earlier choices and returns do not change.
 
 # Markets Backtesting
 
-A walk-forward evaluation harness that runs 50 academically sourced market signals through one
+A fixed-rule evaluation harness that runs 50 literature-inspired market signals through one
 data, execution-cost, and metrics pipeline. It downloads daily price history, replays fixed rules
 across a full-history window and a focused stress window, then ranks every completed run without
 hiding the failures.
@@ -104,7 +106,7 @@ The stress period is a date slice from each generated equity curve. It is a cons
 check, but it is not a separately trained holdout. The Sharpe calculation uses daily returns and
 does not subtract a risk-free rate.
 
-## Run it
+## Run the original Python harness
 
 The verified run used Python 3.11.9. The command needs network access for Yahoo Finance unless
 the optional local daily-bar CSVs are present.
@@ -125,24 +127,46 @@ Local data can be placed under `ibkr_data/` using the filenames declared in
 [`IBKR_MAP`](quantihack_alt_data_50.py). If a local file is missing, the loader requests the same
 symbol from Yahoo Finance.
 
+## Verify without a provider
+
+```sh
+python -m unittest discover -s tests -v
+node --test examples/portfolio/model.test.mjs
+python tools/browser_audit.py
+```
+
+Python checks use synthetic bars to verify execution lag, costs and engine behavior without downloading prices. They also re-count the committed result table. Node checks exercise the bundled historical SPY cache, including changing future prices to prove that earlier training choices and returns stay unchanged. The browser audit checks the redirect and preserved workbench using isolated headless Chrome; it requires the Python Playwright package and Chrome.
+
+These checks do not recreate the original 50-strategy market-data run. Yahoo Finance access and complete daily-bar coverage remain requirements for that run. Optional CSVs need `date`, `open`, `high`, `low`, `close` and `volume` columns; files shorter than 101 rows fall back to download. The listed local filenames cover only eight symbols, so they do not make the entire universe offline.
+
 ## Repository map
 
 | Path | Responsibility |
 |:--|:--|
 | [`quantihack_alt_data_50.py`](quantihack_alt_data_50.py) | Data loading, indicators, 50-signal registry, evaluation, ranking, and outputs |
-| [`quantihack_alt_data_50_results.csv`](quantihack_alt_data_50_results.csv) | Reproducible result table used for every number in this README |
+| [`quantihack_alt_data_50_results.csv`](quantihack_alt_data_50_results.csv) | Recorded historical result table used for the summary above |
 | [`quantihack_alt_data_50.png`](quantihack_alt_data_50.png) | Generated comparison chart |
 | [`quantihack_algo_baseline.py`](quantihack_algo_baseline.py) | Separate 16-symbol baseline used as a reference implementation |
 | [`requirements.txt`](requirements.txt) | Runtime dependencies |
+| [examples/portfolio/legacy.html](examples/portfolio/legacy.html) | Preserved historical browser experiment |
+| [examples/portfolio/model.mjs](examples/portfolio/model.mjs) | Rolling training selection and out-of-sample browser calculations |
+| [tests/test_engines.py](tests/test_engines.py) | Offline Python execution checks and archived-count verification |
+| [DESIGN.md](DESIGN.md) | Current route, retained source and documentation structure |
+
+## Baseline callback
+
+`quantihack_algo_baseline.py` is a separate competition callback, not another standalone backtest command. A host calls `on_tick(prices, positions, orders, history)` and receives order dictionaries for its synthetic 16-symbol universe. It keeps tick/cooldown state in the module and checks exposure, spread and position limits before producing orders. Running the file directly only defines those functions; this repository does not include the original competition host.
 
 ## Scope
 
 This is research and evaluation code. It has no broker integration, order routing, or live
 execution. Several literature-inspired signals use price-derived proxies because their original
 datasets are unavailable here. Read the implementation comments before interpreting a result.
-Historical output is evidence about this fixed run, not a forecast.
+Historical output is evidence about this fixed run, not a forecast. The original Python engine charges on signal changes and omits a first-row entry cost; it does not model spreads, funding, borrowing or market impact. The browser model is a separate implementation. Its training-window selection must not be inferred as a feature of every archived Python strategy.
 
 Contributions should keep signal functions deterministic, preserve one-bar execution lag, and
 record any metric or cost-model change that would break comparability. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for the short workflow. The project is available under the
 [MIT License](LICENSE).
+
+For the optional browser audit, install `playwright` with `python -m pip install playwright`. On Linux, also run `python -m playwright install --with-deps chromium`; on Windows the audit uses installed Chrome. `python tools/browser_audit.py` serves the actual archived files and checks the public-index redirect against a controlled destination, without claiming the current remote application was tested. Set `AUDIT_URL` to verify a deployed legacy redirect instead of the local index.
