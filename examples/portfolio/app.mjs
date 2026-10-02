@@ -82,7 +82,7 @@ function archive() {
                 key === "combined_rank" ? +a[key] - b[key] : +b[key] - a[key],
             );
     $("#archive-count").textContent =
-        rows.length + " of 50 original research runs";
+        rows.length + "/50";
     $("#strategies").innerHTML = rows
         .map(
             (r) =>
@@ -130,9 +130,7 @@ try {
     );
     $("#source").textContent =
         `SPY / ${data.prices.length.toLocaleString()} daily closes / ${data.prices[0].date} to ${data.prices.at(-1).date}`;
-    $("#provenance").textContent =
-        data.note +
-        " The browser experiment is a separate transparent moving-average walk-forward test; it does not reproduce all fifty Python strategies. Positions are marked to close, with no leverage, interest on cash or taxes.";
+    $("#provenance").textContent = "Historical prices; adjustment provenance unverified. SMA walk-forward example.";
     run();
     archive();
 } catch (e) {
